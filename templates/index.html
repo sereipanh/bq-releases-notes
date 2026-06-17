@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Tracker</title>
+    <meta name="description" content="A premium interface to monitor BigQuery release notes and instantly compose tweets to share updates.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Background Blur Blobs -->
+    <div class="glow-blob blob-1"></div>
+    <div class="glow-blob blob-2"></div>
+    <div class="glow-blob blob-3"></div>
+
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="database"></i>
+                    <div class="logo-sparkle"><i data-lucide="sparkles"></i></div>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <p>Release Notes Hub</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="refresh-btn" class="btn btn-primary btn-icon-text">
+                    <span class="spinner-container">
+                        <i data-lucide="refresh-cw" class="spinner"></i>
+                    </span>
+                    <span class="btn-text">Refresh Feed</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Side: Feed & Filters -->
+            <section class="feed-section">
+                <!-- Search & Filter Controls -->
+                <div class="controls-card">
+                    <div class="search-box">
+                        <i data-lucide="search" class="search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Search updates (e.g., 'Gemini', 'Vector', 'GA')...">
+                        <button id="clear-search-btn" class="clear-btn" style="display: none;">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="filter-pills-container">
+                        <span class="filter-label">Filter:</span>
+                        <div class="filter-pills">
+                            <button class="pill active" data-category="all">All</button>
+                            <button class="pill" data-category="Feature">Features</button>
+                            <button class="pill" data-category="Announcement">Announcements</button>
+                            <button class="pill" data-category="Breaking">Breaking</button>
+                            <button class="pill" data-category="Change">Changes</button>
+                            <button class="pill" data-category="Issue">Issues</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feed Updates Timeline -->
+                <div class="timeline-container">
+                    <div id="feed-status" class="status-msg">
+                        <i data-lucide="loader" class="spinner large-spinner"></i>
+                        <p>Loading the latest release notes...</p>
+                    </div>
+                    
+                    <div id="updates-timeline" class="updates-timeline" style="display: none;">
+                        <!-- Dynamically populated updates -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Tweet Composer -->
+            <section class="composer-section">
+                <div class="composer-card sticky-sidebar">
+                    <div class="composer-header">
+                        <h2>Tweet Composer</h2>
+                        <span class="composer-badge">Twitter Draft</span>
+                    </div>
+
+                    <!-- No Selection State -->
+                    <div id="composer-empty-state" class="empty-state">
+                        <div class="empty-icon">
+                            <i data-lucide="twitter"></i>
+                        </div>
+                        <h3>No Update Selected</h3>
+                        <p>Select any release update card from the feed to instantly format and compose a Tweet about it.</p>
+                    </div>
+
+                    <!-- Active Composer State -->
+                    <div id="composer-active-state" class="composer-active" style="display: none;">
+                        <div class="selected-meta-card">
+                            <div class="selected-title">
+                                <span id="composer-selected-date" class="meta-date">June 17, 2026</span>
+                                <span id="composer-selected-category" class="badge">Feature</span>
+                            </div>
+                            <button id="deselect-btn" class="deselect-btn" title="Deselect update">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
+
+                        <!-- Twitter UI Preview -->
+                        <div class="twitter-preview">
+                            <div class="tweet-user-info">
+                                <div class="tweet-avatar">
+                                    <i data-lucide="user"></i>
+                                </div>
+                                <div class="tweet-user-meta">
+                                    <span class="display-name">Cloud Architect</span>
+                                    <span class="handle">@cloud_advocate</span>
+                                </div>
+                            </div>
+
+                            <textarea id="tweet-textarea" rows="6" maxlength="500" placeholder="What's happening?"></textarea>
+
+                            <div class="tweet-preview-footer">
+                                <div class="composer-controls">
+                                    <button class="composer-control-btn" id="btn-shorten-url" title="Shorten content to fit limit">
+                                        <i data-lucide="sparkle"></i> AI Shorten
+                                    </button>
+                                </div>
+                                
+                                <div class="character-counter-wrapper">
+                                    <svg class="progress-ring" width="28" height="28">
+                                        <circle class="progress-ring__circle-bg" stroke="rgba(255,255,255,0.08)" stroke-width="2" fill="transparent" r="11" cx="14" cy="14"/>
+                                        <circle id="char-progress" class="progress-ring__circle" stroke="#1DA1F2" stroke-width="2" fill="transparent" r="11" cx="14" cy="14"/>
+                                    </svg>
+                                    <span id="char-count" class="char-count-text">280</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Tags & Hashtags -->
+                        <div class="hashtag-section">
+                            <span class="section-label">Quick Hashtags:</span>
+                            <div class="hashtag-toggles">
+                                <button class="hashtag-pill" data-tag="#BigQuery">#BigQuery</button>
+                                <button class="hashtag-pill" data-tag="#GoogleCloud">#GoogleCloud</button>
+                                <button class="hashtag-pill" data-tag="#GCP">#GCP</button>
+                                <button class="hashtag-pill" data-tag="#DataEngineering">#DataEngineering</button>
+                                <button class="hashtag-pill" data-tag="#Serverless">#Serverless</button>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button id="tweet-btn" class="btn btn-twitter btn-full">
+                            <i data-lucide="twitter"></i>
+                            <span>Post Draft to Twitter</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast">
+        <div class="toast-content">
+            <i id="toast-icon" data-lucide="info"></i>
+            <span id="toast-message">Notification message</span>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
