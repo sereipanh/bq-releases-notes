@@ -41,11 +41,7 @@
 }
 
 body {
-    background-image: linear-gradient(rgba(8, 12, 20, 0.82), rgba(8, 12, 20, 0.82)), url('/static/images/jesus.png');
-    background-size: cover;
-    background-position: center top;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    background-color: var(--bg-color);
     color: var(--text-primary);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
