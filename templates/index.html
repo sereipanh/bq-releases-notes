@@ -90,7 +90,12 @@
                 <div class="composer-card sticky-sidebar">
                     <div class="composer-header">
                         <h2>Tweet Composer</h2>
-                        <span class="composer-badge">Twitter Draft</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button id="toggle-settings-btn" class="deselect-btn" title="Composer Settings" style="margin-right: 4px; display: none;">
+                                <i data-lucide="settings"></i>
+                            </button>
+                            <span class="composer-badge">Twitter Draft</span>
+                        </div>
                     </div>
 
                     <!-- No Selection State -->
@@ -104,6 +109,23 @@
 
                     <!-- Active Composer State -->
                     <div id="composer-active-state" class="composer-active" style="display: none;">
+                        <!-- Profile Settings Panel -->
+                        <div id="composer-settings" class="composer-settings" style="display: none; background: rgba(0, 0, 0, 0.2); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border); margin-bottom: 4px; animation: fadeIn 0.3s;">
+                            <h4 style="font-size: 12px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
+                                <i data-lucide="user-cog" style="width: 14px; height: 14px;"></i> Profile Customization
+                            </h4>
+                            <div style="display: flex; gap: 10px;">
+                                <div style="flex: 1;">
+                                    <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Name</label>
+                                    <input type="text" id="settings-display-name" value="Cloud Architect" style="width: 100%; background: rgba(8, 12, 20, 0.6); border: 1px solid var(--card-border); border-radius: 6px; padding: 6px 10px; color: white; font-size: 12px; transition: border-color var(--transition-speed);" placeholder="e.g. Cloud Architect">
+                                </div>
+                                <div style="flex: 1;">
+                                    <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px; font-weight: 600; text-transform: uppercase;">Handle</label>
+                                    <input type="text" id="settings-handle" value="cloud_advocate" style="width: 100%; background: rgba(8, 12, 20, 0.6); border: 1px solid var(--card-border); border-radius: 6px; padding: 6px 10px; color: white; font-size: 12px; transition: border-color var(--transition-speed);" placeholder="e.g. cloud_advocate">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="selected-meta-card">
                             <div class="selected-title">
                                 <span id="composer-selected-date" class="meta-date">June 17, 2026</span>
@@ -121,8 +143,8 @@
                                     <i data-lucide="user"></i>
                                 </div>
                                 <div class="tweet-user-meta">
-                                    <span class="display-name">Cloud Architect</span>
-                                    <span class="handle">@cloud_advocate</span>
+                                    <span class="display-name" id="preview-display-name">Cloud Architect</span>
+                                    <span class="handle" id="preview-handle">@cloud_advocate</span>
                                 </div>
                             </div>
 
@@ -157,11 +179,17 @@
                             </div>
                         </div>
 
-                        <!-- Action Button -->
-                        <button id="tweet-btn" class="btn btn-twitter btn-full">
-                            <i data-lucide="twitter"></i>
-                            <span>Post Draft to Twitter</span>
-                        </button>
+                        <!-- Action Buttons -->
+                        <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                            <button id="tweet-btn" class="btn btn-twitter btn-full">
+                                <i data-lucide="twitter"></i>
+                                <span>Post Draft to Twitter</span>
+                            </button>
+                            <button id="copy-btn" class="btn btn-full" style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--card-border); color: var(--text-primary); transition: all var(--transition-speed);">
+                                <i data-lucide="copy"></i>
+                                <span>Copy Draft to Clipboard</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -29,6 +29,15 @@ const charCount = document.getElementById('char-count');
 const hashtagPills = document.querySelectorAll('.hashtag-pill');
 const tweetBtn = document.getElementById('tweet-btn');
 
+// UX Improvements DOM Elements
+const toggleSettingsBtn = document.getElementById('toggle-settings-btn');
+const composerSettingsPanel = document.getElementById('composer-settings');
+const settingsDisplayName = document.getElementById('settings-display-name');
+const settingsHandle = document.getElementById('settings-handle');
+const previewDisplayName = document.getElementById('preview-display-name');
+const previewHandle = document.getElementById('preview-handle');
+const copyBtn = document.getElementById('copy-btn');
+
 // Progress Circle Setup
 const circleRadius = 11;
 const circumference = circleRadius * 2 * Math.PI;
@@ -105,7 +114,7 @@ function setupEventListeners() {
                 selectedHashtags.add(tag);
                 pill.classList.add('active');
             }
-            regenerateTweetDraft(false); // Update draft without losing minor user edits if possible, or fully update
+            regenerateTweetDraft(false);
         });
     });
     
@@ -116,6 +125,38 @@ function setupEventListeners() {
         const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
         window.open(twitterUrl, '_blank', 'noopener,noreferrer');
         showToast('Redirected to Twitter web intent!', 'success');
+    });
+
+    // UX improvements: Profile Customization settings toggle
+    toggleSettingsBtn.addEventListener('click', () => {
+        const isHidden = composerSettingsPanel.style.display === 'none';
+        composerSettingsPanel.style.display = isHidden ? 'block' : 'none';
+    });
+
+    // UX improvements: Profile settings input event handlers
+    settingsDisplayName.addEventListener('input', (e) => {
+        const val = e.target.value.trim() || 'Cloud Architect';
+        previewDisplayName.innerText = val;
+    });
+
+    settingsHandle.addEventListener('input', (e) => {
+        let val = e.target.value.trim() || 'cloud_advocate';
+        // Ensure single @ prefix
+        val = val.replace(/^@+/, '');
+        previewHandle.innerText = `@${val}`;
+    });
+
+    // UX improvements: Copy to Clipboard Button
+    copyBtn.addEventListener('click', async () => {
+        const text = tweetTextarea.value;
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('Draft copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Clipboard copy failed:', err);
+            showToast('Failed to copy to clipboard.', 'error');
+        }
     });
 }
 
@@ -206,7 +247,7 @@ function renderTimeline() {
             // Category check
             const matchesCategory = currentFilters.category === 'all' || update.category === currentFilters.category;
             
-            // Search text check
+            // Search check
             const matchesSearch = !currentFilters.search || 
                 update.category.toLowerCase().includes(currentFilters.search) || 
                 update.raw_text.toLowerCase().includes(currentFilters.search);
@@ -259,6 +300,10 @@ function renderTimeline() {
             const categoryClass = `badge-${update.category.toLowerCase()}`;
             const displayCategory = update.category;
             
+            // UX improvement: Collapse card if description content exceeds 320 characters
+            const isLongDescription = update.description.length > 320;
+            const contentClass = isLongDescription ? 'card-content card-content-collapsed' : 'card-content';
+            
             html += `
                 <div class="update-card ${isSelected ? 'selected' : ''}" data-update-id="${update.id}">
                     <div class="card-header">
@@ -269,9 +314,15 @@ function renderTimeline() {
                             <i data-lucide="check"></i>
                         </div>
                     </div>
-                    <div class="card-content">
+                    <div class="${contentClass}">
                         ${update.description}
                     </div>
+                    ${isLongDescription ? `
+                    <button class="show-more-btn" data-expanded="false">
+                        <span>Show More</span>
+                        <i data-lucide="chevron-down"></i>
+                    </button>
+                    ` : ''}
                 </div>
             `;
         });
@@ -288,18 +339,40 @@ function renderTimeline() {
     // Attach selection handlers to cards
     document.querySelectorAll('.update-card').forEach(card => {
         card.addEventListener('click', (e) => {
-            // Prevent selection if clicked on an anchor link
-            if (e.target.tagName === 'A') return;
+            // Prevent selection if clicked on an anchor link or show-more button
+            if (e.target.tagName === 'A' || e.target.closest('.show-more-btn')) return;
             
             const updateId = card.dataset.updateId;
             handleCardSelection(updateId);
+        });
+    });
+
+    // UX improvement: Attach toggle handlers to card expand buttons
+    document.querySelectorAll('.show-more-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Avoid triggering card selection on click
+            const card = btn.closest('.update-card');
+            const content = card.querySelector('.card-content');
+            const isExpanded = btn.dataset.expanded === 'true';
+            
+            if (isExpanded) {
+                content.classList.add('card-content-collapsed');
+                btn.dataset.expanded = 'false';
+                btn.classList.remove('expanded');
+                btn.querySelector('span').innerText = 'Show More';
+            } else {
+                content.classList.remove('card-content-collapsed');
+                btn.dataset.expanded = 'true';
+                btn.classList.add('expanded');
+                btn.querySelector('span').innerText = 'Show Less';
+            }
+            lucide.createIcons();
         });
     });
 }
 
 // Handle Card Selection
 function handleCardSelection(updateId) {
-    // Find the update details
     let foundUpdate = null;
     let foundEntry = null;
     
@@ -328,6 +401,9 @@ function handleCardSelection(updateId) {
         composerEmpty.style.display = 'none';
         composerActive.style.display = 'flex';
         
+        // UX improvement: Show profile customization gear button
+        toggleSettingsBtn.style.display = 'block';
+        
         // Setup details
         selectedDateEl.innerText = selectedUpdate.date;
         selectedCatEl.innerText = selectedUpdate.category;
@@ -355,6 +431,10 @@ function deselectActiveUpdate() {
     composerActive.style.display = 'none';
     composerEmpty.style.display = 'flex';
     
+    // UX improvement: Hide configuration panels on deselect
+    toggleSettingsBtn.style.display = 'none';
+    composerSettingsPanel.style.display = 'none';
+    
     document.querySelectorAll('.update-card').forEach(card => {
         card.classList.remove('selected');
     });
@@ -371,32 +451,21 @@ function regenerateTweetDraft(isFirstLoad = false) {
     const link = selectedUpdate.link;
     const tags = Array.from(selectedHashtags);
     
-    // Draft layout:
-    // [Category] Update ([Date]): "[Snippet]"
-    //
-    // Read: [Link]
-    // #Tags
-    
     const prefix = `${category} Update (${date}): `;
     const linkSection = `\n\nRead more: ${link}`;
     const tagsSection = tags.length > 0 ? `\n\n${tags.join(' ')}` : '';
     
-    const maxDescLength = 280 - (prefix.length + linkSection.length + tagsSection.length + 4); // 4 chars for quote marks and ellipsis
+    const maxDescLength = 280 - (prefix.length + linkSection.length + tagsSection.length + 4);
     
     let descriptionText = selectedUpdate.raw_text;
     
     if (isFirstLoad) {
-        // If it's a new card, we apply smart truncation right away to fit Twitter's limit
         if (descriptionText.length > maxDescLength) {
             descriptionText = descriptionText.substring(0, maxDescLength) + '...';
         }
         tweetTextarea.value = `${prefix}"${descriptionText}"${linkSection}${tagsSection}`;
     } else {
-        // If we are just updating hashtags, we try to preserve whatever the user edited in the textarea
-        // Let's replace the hashtag block at the end
         let currentVal = tweetTextarea.value;
-        
-        // Simple heuristic: find if the current draft contains tags, strip them and replace
         const tagRegex = /(#\w+\s*)+$/;
         if (tagRegex.test(currentVal)) {
             currentVal = currentVal.replace(tagRegex, tags.join(' '));
@@ -422,12 +491,10 @@ function shortenTweetText() {
     const linkSection = `\n\nRead: ${link}`;
     const tagsSection = tags.length > 0 ? `\n\n${tags.join(' ')}` : '';
     
-    // Shorten the description to fit aggressively
     const maxDescLength = 280 - (prefix.length + linkSection.length + tagsSection.length + 4);
     
     let text = selectedUpdate.raw_text;
     if (text.length > maxDescLength) {
-        // Find a space to truncate cleanly
         let truncated = text.substring(0, maxDescLength);
         const lastSpace = truncated.lastIndexOf(' ');
         if (lastSpace > maxDescLength * 0.8) {
@@ -448,30 +515,24 @@ function updateCharacterCount() {
     const remaining = limit - textLength;
     
     charCount.innerText = remaining;
-    
-    // Progress percent
     const percent = Math.min((textLength / limit) * 100, 100);
-    
-    // Circumference Math
     const offset = circumference - (percent / 100 * circumference);
     charProgress.style.strokeDashoffset = offset;
     
-    // Dynamic coloring based on length
     if (textLength >= limit) {
-        charProgress.style.stroke = '#EF4444'; // Red
+        charProgress.style.stroke = '#EF4444';
         charCount.className = 'char-count-text error';
         tweetBtn.disabled = true;
     } else if (textLength >= limit - 40) {
-        charProgress.style.stroke = '#F59E0B'; // Amber
+        charProgress.style.stroke = '#F59E0B';
         charCount.className = 'char-count-text warn';
         tweetBtn.disabled = false;
     } else {
-        charProgress.style.stroke = '#1DA1F2'; // Twitter Blue
+        charProgress.style.stroke = '#1DA1F2';
         charCount.className = 'char-count-text';
         tweetBtn.disabled = false;
     }
     
-    // Edge case for empty text
     if (textLength === 0) {
         tweetBtn.disabled = true;
     }
@@ -486,9 +547,8 @@ function showToast(message, type = 'info') {
     const toastMessage = document.getElementById('toast-message');
     
     toastMessage.innerText = message;
-    
-    // Set icon & class
     toastIcon.className = `success ${type}`;
+    
     if (type === 'success') {
         toastIcon.setAttribute('data-lucide', 'check-circle');
     } else if (type === 'error') {
@@ -498,7 +558,6 @@ function showToast(message, type = 'info') {
     }
     
     lucide.createIcons();
-    
     toast.className = 'toast show';
     
     toastTimeout = setTimeout(() => {
